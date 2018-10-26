@@ -51,7 +51,7 @@ class PolyNN:
         self.functions = [ap.initialize_polyfunc_rand(inp,outp,deg)
             for inp,outp,deg in zip(layersSizes[:-1],layersSizes[1:],degrees)]
         self.thresh=thresholdFunction
-        self.damping = damping
+        self.damping = 10**damping
     def feedForward(self,x):
         activation = x
         for t in self.functions:
