@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright: (c) 2018, https://github.com/olivierRoche/neural_network_polynomial_layers-
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
 """
 Created on Fri Jul 13 13:35:26 2018
 
