@@ -41,7 +41,7 @@ step=ComponentwiseC1Function(lambda x:(-1.0*(x<-1)+x*(np.abs(x)<=1)+(x>1)), lamb
 #*******************************************
 """ We use the square of norm cost function : """
 def cost(a,y):
-    return sum((a-y)*(a-y))
+    return 0.5 * sum((a-y)*(a-y))
 
 def nabla_cost(a,y):
     return a-y
