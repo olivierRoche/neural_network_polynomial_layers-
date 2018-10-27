@@ -54,7 +54,10 @@ class PolyNN:
         self.functions = [ap.initialize_polyfunc_rand(inp,outp,deg)
             for inp,outp,deg in zip(layersSizes[:-1],layersSizes[1:],degrees)]
         self.thresh=thresholdFunction
-        self.damping = 10**damping
+        if damping is not None:
+            self.damping = 10**damping
+        else:
+            self.damping = None
     def feedForward(self,x):
         activation = x
         for t in self.functions:
@@ -99,11 +102,20 @@ class PolyNN:
                 nabla_Cost_wrt_a)
         return delta_P
     
-    def steplearning(self,x,y,eta):
+    def steplearning(self,x,y,eta,normalize = False):
         """ modifies self.functions using self.backPropagation(x,y)
-        eta is the change rate """     
+        eta is the change rate 
+        if normalize is enabled, """     
         delta_P = self.backPropagation(x,y)
         for l in range(self.numberLayers-1):
-            self.functions[l] -= eta* delta_P[l]           
+            if normalize:
+                self.functions[l] -= (1/weight_polyfunc(delta_P[l])* eta) * delta_P[l] 
+            else:
+                self.functions[l] -= eta* delta_P[l]           
 
+def weight_polynomial(polynomial):
+    vec_coeff = np.array([c for c in polynomial.coeff.values()])
+    return norme(vec_coeff)
 
+def weight_polyfunc(P):
+    return max([weight_polynomial(p) for p in P])
