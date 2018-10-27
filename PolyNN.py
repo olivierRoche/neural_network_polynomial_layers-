@@ -39,6 +39,9 @@ identity=ComponentwiseC1Function(lambda x:x,lambda x:1)
 step=ComponentwiseC1Function(lambda x:(-1.0*(x<-1)+x*(np.abs(x)<=1)+(x>1)), lambda x:(0.0*(x<1)+1*(np.abs(x)<=1)+0.0*(x>1)))
 
 #*******************************************
+""" We use the square of norm cost function : """
+def cost(a,y):
+    return sum((a-y)*(a-y))
 
 def nabla_cost(a,y):
     return a-y
