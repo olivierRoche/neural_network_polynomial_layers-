@@ -2,6 +2,14 @@
 
 PolyNN is a neural network library, made from scratch. Unlike classical neural networks, they are able to learn polynomial functions.
 
+# Applications
+
+**logic** My first intent was to allow neural networks to perform fuzzy logic. This requires neural networks to compute polynomials of degree 2.
+
+**Polynomial regression** The most straightforward application is polynomial regression (any number of variables, any degree). The following figure shows (in red) the regression performed by our model given the data ploted in blue :
+
+![ScreenShot](/screenshots/regression_with_noise.png)
+
 # Known limitations
 
 Sometimes, the learning process diverges violently. Making the learning process more stable is a work in progress.
