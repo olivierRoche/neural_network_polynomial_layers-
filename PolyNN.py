@@ -105,13 +105,20 @@ class PolyNN:
     def steplearning(self,x,y,eta,normalize = False):
         """ modifies self.functions using self.backPropagation(x,y)
         eta is the change rate 
-        if normalize is enabled, """     
+        if normalize is enabled, the norm of the change is bounded by eta,
+        this is achieved by normalizing the vector delta_P if its norm is
+        greater than 1"""     
         delta_P = self.backPropagation(x,y)
         for l in range(self.numberLayers-1):
             if normalize:
-                self.functions[l] -= (1/weight_polyfunc(delta_P[l])* eta) * delta_P[l] 
+                w = weight_polyfunc(delta_P[l])
+                if w>1:
+                    learning_rate = eta/w
+                else:
+                    learning_rate = eta
             else:
-                self.functions[l] -= eta* delta_P[l]           
+                learning_rate = eta
+            self.functions[l] -= learning_rate* delta_P[l]           
 
 def weight_polynomial(polynomial):
     vec_coeff = np.array([c for c in polynomial.coeff.values()])
