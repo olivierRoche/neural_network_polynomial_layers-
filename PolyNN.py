@@ -5,12 +5,14 @@
 """
 Created on Fri Jul 13 13:35:26 2018
 
-@author: Augustine
+@author: Olivier Roche
 """
 
 import numpy as np
 
 import AlgPoly as ap
+
+import random
 
 def norme(x):
     return np.sqrt(sum(x**2))
@@ -119,6 +121,33 @@ class PolyNN:
             else:
                 learning_rate = eta
             self.functions[l] -= learning_rate* delta_P[l]           
+            
+    def learn_minibatch(self, minibatch, eta, normalize = False):
+        delta_P = [ap.initialize_polyfunc_zero(inp,outp,deg) for inp,outp,deg  
+                   in zip(self.layersSizes[:-1],self.layersSizes[1:],self.degrees)]      
+        for (x,y) in minibatch:
+            change = self.backPropagation(x,y)
+            for l in range(len(delta_P)):
+                if normalize:
+                    w = norm_polyfunc(change[l])
+                    if w>1:
+                        learning_rate = eta / w
+                    else:
+                        learning_rate = eta
+                else:
+                    learning_rate = eta
+                delta_P[l] += learning_rate / len(minibatch) * change[l]
+        for l in range(len(delta_P)):
+            self.functions[l] -= delta_P[l]
+            
+    def batchlearning(self, training_data, batch_size, nb_epochs, eta, normalize = False):
+        for epoch in range(nb_epochs):
+            random.shuffle(training_data)
+            batches = [training_data[k:k + batch_size] for k in 
+                       range(0,len(training_data),batch_size)]
+            for batch in batches:
+                self.learn_minibatch(batch, eta, normalize)
+            print("epoch {0}/{1} complete\n".format(epoch + 1,nb_epochs))
 
 def norm_polynomial(polynomial):
     vec_coeff = np.array([c for c in polynomial.coeff.values()])
