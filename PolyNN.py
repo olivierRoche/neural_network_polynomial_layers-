@@ -111,18 +111,18 @@ class PolyNN:
         delta_P = self.backPropagation(x,y)
         for l in range(self.numberLayers-1):
             if normalize:
-                w = weight_polyfunc(delta_P[l])
+                w = norm_polyfunc(delta_P[l])
                 if w>1:
-                    learning_rate = eta/w
+                    learning_rate = eta / w
                 else:
                     learning_rate = eta
             else:
                 learning_rate = eta
             self.functions[l] -= learning_rate* delta_P[l]           
 
-def weight_polynomial(polynomial):
+def norm_polynomial(polynomial):
     vec_coeff = np.array([c for c in polynomial.coeff.values()])
     return norme(vec_coeff)
 
-def weight_polyfunc(P):
-    return max([weight_polynomial(p) for p in P])
+def norm_polyfunc(P):
+    return max([norm_polynomial(p) for p in P])
