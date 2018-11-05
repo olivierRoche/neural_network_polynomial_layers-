@@ -14,6 +14,8 @@ import AlgPoly as ap
 
 import random
 
+from tqdm import tqdm
+
 def norme(x):
     return np.sqrt(sum(x**2))
 
@@ -93,12 +95,10 @@ class PolyNN:
         #*****backward passes*****
         for l in range(self.numberLayers-2,-1,-1):
             for i in range(self.layersSizes[l+1]):
-                delta_P[l][i].coeff = {tuple : self.thresh.derivative(zValues[l][i]) 
-                       * ap.monom(tuple,activations[l]) 
-                       * nabla_Cost_wrt_a[i] 
-                       for tuple in ap.iterTuple(nb_var=self.layersSizes[l],
-                                             degree=self.degrees[l])
-                                        }
+                for tup in ap.iterTuple(self.layersSizes[l],self.degrees[l]):
+                    delta_P[l][i].coeff[tup] = self.thresh.derivative(zValues[l][i]) \
+                        * ap.monom(tup,activations[l]) \
+                        * nabla_Cost_wrt_a[i] 
             nabla_Cost_wrt_a = np.dot(np.dot(self.thresh.differential(zValues[l]),\
                 ap.differential(self.functions[l],activations[l])).transpose(),
                 nabla_Cost_wrt_a)
@@ -142,10 +142,11 @@ class PolyNN:
             
     def batchlearning(self, training_data, batch_size, nb_epochs, eta, normalize = False):
         for epoch in range(nb_epochs):
+            print("epoch {0} progress :".format(epoch + 1))
             random.shuffle(training_data)
             batches = [training_data[k:k + batch_size] for k in 
                        range(0,len(training_data),batch_size)]
-            for batch in batches:
+            for batch in tqdm(batches):
                 self.learn_minibatch(batch, eta, normalize)
             print("epoch {0}/{1} complete\n".format(epoch + 1,nb_epochs))
 
