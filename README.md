@@ -12,6 +12,8 @@ PolyNN is a neural network library, made from scratch. Unlike classical neural n
 
 # Known limitations
 
+The backpropagation method becomes (very) slow for large layers. This is a work in progress.
+
 Sofar, only simple (defined componentwise and equal on each component) threshold functions are usable by PolyNN. This is a work in progress.
 
 # Credits
