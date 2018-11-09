@@ -4,7 +4,7 @@
 """
 Created on Sat Jun 30 23:59:23 2018
 
-@author: Augustine
+@author: Olivier Roche
 """
 import numpy as np
 import random as rd
@@ -15,18 +15,18 @@ def sort_tuple(t):
     return tuple(t_as_list)
 
 class Polynomial:
-#vars is the set of the index of all variables.
-#Say the variables are X_0,X_1,X_2. Then vars is the set {0,1,2}.
+    """vars is the set of the index of all variables.
+Say the variables are X_0,X_1,X_2. Then vars is the set {0,1,2}.
 
-#The coeff is a dictionary of coefficients, which keys are tuples. 
-#eg the key (0,1) in coeff corresponds to the monomial X_0X_1
-# the key (0,0,1) corresponds to the monomial X_0X_0X_1, ie X_0^2X_1 .
-# () corresponds to 1 (the constant term).
-# (0,) (resp. (1,)) corresponds to X_0 (resp. X_1).
-#To ensure that a given monomial only comes once in the keys of coeff,
-#the corresponding tuple is required to be ordered. eg, X_0^2X_1 might
-#be described either by (0,0,1), (1,0,0), (0,1,0) but only (0,0,1) is valid
-#since it is ordered. We use the function sort_tuple to achieve that.
+The coeff is a dictionary of coefficients, which keys are tuples. 
+eg the key (0,1) in coeff corresponds to the monomial X_0X_1
+ the key (0,0,1) corresponds to the monomial X_0X_0X_1, ie X_0^2X_1 .
+ () corresponds to 1 (the constant term).
+ (0,) (resp. (1,)) corresponds to X_0 (resp. X_1).
+To ensure that a given monomial only comes once in the keys of coeff,
+the corresponding tuple is required to be ordered. eg, X_0^2X_1 might
+be described either by (0,0,1), (1,0,0), (0,1,0) but only (0,0,1) is valid
+since it is ordered. We use the function sort_tuple to achieve that."""
     def __init__(self,coeff = {}):  
         self.coeff={}
         if len(coeff.keys())==0:
@@ -40,10 +40,10 @@ class Polynomial:
                     self.vars.add(i)
                     
     def evaluate(self,valuation):
-        #Evaluates the value of the plynomial for a given valuation.
-        #The valuation is given as a dictionary. 
-        #eg, say the polynomial is X_0^2+X_1, hence variables are X_0 and X_1,
-        #then evaluate({0: 4, 1: 13}) will return 4^2 + 13, ie 29.
+        """Evaluates the value of the plynomial for a given valuation.
+        The valuation is given as a dictionary. 
+        eg, say the polynomial is X_0^2+X_1, hence variables are X_0 and X_1,
+        then evaluate({0: 4, 1: 13}) will return 4^2 + 13, ie 29."""
         
         #First, check if the input is compatible :
         if len(self.vars.symmetric_difference(valuation.keys())) != 0:
@@ -129,22 +129,43 @@ class Polynomial:
         coeff_deriv={tuple([var]) : 0} #forces var to appear as a variable in 
                                  # the returned polynomial 
         for ck in self.coeff.keys():
-            t_deriv=self.coeff[ck]
-            deg_v=sum(i==var for i in ck)
-            t_deriv*=deg_v
-            keyCtor=[]
-            vNotMet=True
+            t_deriv = self.coeff[ck]
+            deg_v = sum(i==var for i in ck)
+            t_deriv *= deg_v
+            keyCtor = []
+            vNotMet = True
             for i in ck:
                 if var==i and vNotMet:
-                    vNotMet=False
+                    vNotMet = False
                 else:
                     keyCtor.append(i)
-            newkey=tuple(keyCtor)
+            newkey = tuple(keyCtor)
             if newkey in coeff_deriv.keys():
-                coeff_deriv[newkey]+=t_deriv
+                coeff_deriv[newkey] += t_deriv
             else:
-                coeff_deriv[newkey]=t_deriv
+                coeff_deriv[newkey]= t_deriv
         return Polynomial(coeff_deriv)        
+    
+    def evaluate_partial_derivative(self,var,valuation):
+        deriv = 0
+        for ck in self.coeff.keys():
+            term = self.coeff[ck] * sum(i==var for i in ck)
+            varNotMet = True
+            for i in ck:
+                if var==i and varNotMet:
+                    varNotMet = False
+                else:
+                    term *= valuation[i]
+            deriv += term
+        return deriv
+    
+    def quick_differential(self,valuation):
+        if len(set(valuation.keys()) ^ self.vars)!=0:
+           raise Exception("Incompatible Variables {0} expected, {1} given"
+                           .format(self.vars,valuation.keys()))
+        else:
+           return np.array([self.evaluate_partial_derivative(i,valuation)\
+                             for i in self.vars])
     
     def differential(self,valuation):
        if len(set(valuation.keys()) ^ self.vars)!=0:
@@ -155,22 +176,68 @@ class Polynomial:
                             for i in self.vars])
 
 #-----------------------------------------------------------------------------
-    
+"""------------Nomenclature---------------------------------
+
+The variables of a polynomial is the set .vars . This also includes
+mute variables. eg, say p =Polynomial({(0,):0}), then X_0 is a variable of
+p even if p is the zero polynomial.
+
+Define the absolute degree of a Polynomial p as the maximal length of
+a key of p.coeff.
+"""    
 """
 --------help functions for arrays of Polynomials----------------------------
 
 in this section, poly_function refers to an array of instances of Polynomial
 whose variables indices range from 0 to n-1.
 Say poly_function is of shape (m,), poly_function must be thought as 
- a function from R^n to R^m, which is polynomial componentwise.
+ a function from R^n to R^m, which is polynomial componentwise, these
+polynomials having the same variables and absolute degree. 
 point is assumed to be an array of numbers of shape (n,), representing
  a point in R^n."""
     
 def evaluate_poly_func(poly_function,point):
     return np.array([p.raw_evaluate(point) for p in poly_function])    
     
+def monomial_derivative(monomial,var,point):
+    var_was_met = False
+    deriv = sum(v == var for v in monomial)
+    if deriv == 0:
+        return 0
+    for v in monomial:
+        if (not var_was_met) and v == var:
+            var_was_met = True
+        else :             
+            deriv *= point[v]
+    return deriv
+            
+            
 def differential(poly_function,point):
-    return np.array([p.differential(raw_valuation(point)) for p in poly_function])
+    """remember that all polynomials in poly_function are assumed
+    to have the same variables and equal absolute degree .
+    
+    to optimize the computation of the differential, for each
+    monomial mon, we compute the value of the derivative of mon wrt 
+    to a given variable only once (rather than having to compute
+    it once for each polynomial in poly_function)
+    
+    scattered_differential gathers the differential of the monomial parts
+    of poly_function
+    """
+    pvars = poly_function[0].vars
+    monomials = poly_function[0].coeff.keys()
+    scattered_differential = []
+    for mon in monomials:
+        mon_derivatives = \
+            np.array([monomial_derivative(mon,v,point) for v in pvars])
+        mon_terms = np.array( 
+            [p.coeff[mon] for p in poly_function]).reshape(len(poly_function),1)\
+                *mon_derivatives.reshape(1,len(pvars))
+        scattered_differential.append(mon_terms)
+    return np.sum(scattered_differential,axis=0)
+        
+        
+
 
 def initialize_polyfunc_zero(dim_input,dim_output,degree):
     return np.array([fullZeroPolynomial(dim_input,degree) for i in range(dim_output)])
