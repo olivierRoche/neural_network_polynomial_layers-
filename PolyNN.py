@@ -51,22 +51,29 @@ def nabla_cost(a,y):
     return a-y
 
 class PolyNN:
-    def __init__(self,layersSizes,thresholdFunction,degrees,damping = None):
+    def __init__(self,layersSizes,thresholdFunctions,degrees,damping = None):
         self.numberLayers = len(layersSizes)
         self.layersSizes = layersSizes
         self.degrees = degrees
         self.functions = [ap.initialize_polyfunc_rand(inp,outp,deg)
             for inp,outp,deg in zip(layersSizes[:-1],layersSizes[1:],degrees)]
-        self.thresh=thresholdFunction
+        """a hack to ensure retrocompatibility : if a single
+        threshold function is given, we assume it is used for
+        every layer"""
+        if type(thresholdFunctions)==type([]):
+            self.thresh = thresholdFunctions
+        else:
+            self.thresh=[thresholdFunctions for 
+                         i in range(self.numberLayers-1)]
         if damping is not None:
             self.damping = 10**damping
         else:
             self.damping = None
     def feedForward(self,x):
         activation = x
-        for t in self.functions:
-            z = ap.evaluate_poly_func(t,activation)
-            activation=self.thresh.main(z)
+        for l in range(self.numberLayers-1):
+            z = ap.evaluate_poly_func(self.functions[l],activation)
+            activation=self.thresh[l].main(z)
         return activation
 
     def backPropagation(self,x,y):
@@ -75,10 +82,10 @@ class PolyNN:
         zValues=[]
         activation=x
         activations.append(activation)
-        for t in self.functions:
-            z = ap.evaluate_poly_func(t,activation)
+        for l in range(self.numberLayers-1):
+            z = ap.evaluate_poly_func(self.functions[l],activation)
             zValues.append(z)
-            activation = self.thresh.main(z)
+            activation = self.thresh[l].main(z)
             activations.append(activation)
         #*********initialisation for backward pass***********************
         #delta_P will be our return value. It is a convenient way
@@ -96,12 +103,13 @@ class PolyNN:
         for l in range(self.numberLayers-2,-1,-1):
             for i in range(self.layersSizes[l+1]):
                 for tup in ap.iterTuple(self.layersSizes[l],self.degrees[l]):
-                    delta_P[l][i].coeff[tup] = self.thresh.derivative(zValues[l][i]) \
+                    delta_P[l][i].coeff[tup] = self.thresh[l].derivative(zValues[l][i]) \
                         * ap.monom(tup,activations[l]) \
                         * nabla_Cost_wrt_a[i] 
-            nabla_Cost_wrt_a = np.dot(np.dot(self.thresh.differential(zValues[l]),\
-                ap.differential(self.functions[l],activations[l])).transpose(),
-                nabla_Cost_wrt_a)
+            if l>0:
+                nabla_Cost_wrt_a = np.dot(np.dot(self.thresh[l].differential(zValues[l]),\
+                                        ap.differential(self.functions[l],activations[l])).transpose(),
+                    nabla_Cost_wrt_a)
         return delta_P
     
     def steplearning(self,x,y,eta,normalize = False):
