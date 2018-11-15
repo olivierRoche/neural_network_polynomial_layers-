@@ -60,7 +60,7 @@ class PolyNN:
         """a hack to ensure retrocompatibility : if a single
         threshold function is given, we assume it is used for
         every layer"""
-        if type(thresholdFunctions)==type([]):
+        if type(thresholdFunctions) is list:
             self.thresh = thresholdFunctions
         else:
             self.thresh=[thresholdFunctions for 
