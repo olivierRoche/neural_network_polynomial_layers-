@@ -87,19 +87,22 @@ class PolyNN:
 
     def backPropagation(self, x, y):
         # ******forward pass*****
-        activations=[]
+        activations = []
+        cached_activations = []
         zValues = []
         activation = x
         activations.append(activation)
         for l in range(self.numberLayers-1):
-            z = ap.evaluate_poly_func(self.functions[l], activation)
+            cache = self.functions[l][0].make_cache(activation)
+            cached_activations.append(cache)
+            z = ap.evaluate_poly_func_with_cache(self.functions[l], cache)
             zValues.append(z)
             activation = self.thresh[l].main(z)
             activations.append(activation)
-        # *********initialisation for backward pass***********************
-        # delta_P will be our return value. It is a convenient way
-        # to store the partial derivatives of cost with respect to the
-        # different parameters of self.functions .
+        """*********initialisation for backward pass***********************
+         delta_P will be our return value. It is a convenient way
+         to store the partial derivatives of cost with respect to the
+         different parameters of self.functions ."""
         delta_P = [ap.initialize_polyfunc_zero(inp,outp,deg) for inp, outp, deg
                    in zip(self.layersSizes[:-1], self.layersSizes[1:], self.degrees)]
         # damping is a trick to avoid explosion of our return value

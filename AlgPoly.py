@@ -175,6 +175,13 @@ since it is ordered. We use the function sort_tuple to achieve that."""
            return np.array([(self.partial_derivative(i)).evaluate(valuation) 
                             for i in self.vars])
 
+    def make_cache(self,array):
+        return {mon : monom(mon,array) for mon in self.coeff.keys()}
+        
+    def evaluate_with_cache(self,cache):
+        return np.dot(dic2array(cache).T,dic2array(self.coeff))
+    
+    
 #-----------------------------------------------------------------------------
 """------------Nomenclature---------------------------------
 
@@ -199,6 +206,11 @@ point is assumed to be an array of numbers of shape (n,), representing
 def evaluate_poly_func(poly_function,point):
     return np.array([p.raw_evaluate(point) for p in poly_function])    
     
+
+def evaluate_poly_func_with_cache(poly_function,cache):
+    return np.array([p.evaluate_with_cache(cache) for p in poly_function])
+
+
 def monomial_derivative(monomial,var,point):
     var_was_met = False
     deriv = sum(v == var for v in monomial)
@@ -289,3 +301,6 @@ def monom(tuple,array):
     for i in tuple:
         ret *= array[i]
     return ret
+
+def dic2array(dic):
+    return np.array([dic[k] for k in dic.keys()])
