@@ -52,7 +52,7 @@ class Polynomial(Module):
             the maximum size for the last axis of the Parameters self.coeff_deg_d
         coeff_deg_d : torch.nn.parameter.Parameter
             the coefficients of the monomials of degree d for each polynomial P_{0}, ..., P_{out_size - 1}. These
-            coefficients are enumerated in lexycographical order. eg, say inp_size == 3, theb coeff_deg_2[1] describes
+            coefficients are enumerated in lexycographical order. eg, say inp_size == 2, theb coeff_deg_2[1] describes
             the coefficients of degree 2 of P_1 as follow:
                 * coeff_deg_2[1][0] is the coefficient of X_0 * X_0
                 * coeff_deg_2[1][1] is the coefficient of X_0 * X_1
