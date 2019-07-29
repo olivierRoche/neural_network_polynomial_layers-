@@ -87,11 +87,6 @@ class Polynomial(Module):
         else:
             return sum(self.__count_ordered_tuples(i, deg - 1) for i in range(start, self.inp_size))
 
-    def tuple_helper(self):
-        def helper(self, tuple):
-            return self.deg
-        return helper
-
     def reset_parameters(self):
         for param in self.parameter_names:
             init.kaiming_uniform_(getattr(self, param), a=sqrt(5))
