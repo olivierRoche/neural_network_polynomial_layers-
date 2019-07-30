@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+""" A pytorch Module for polynomial (rather than affine) layers. """
+
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -8,6 +12,28 @@ from torch.nn.modules.linear import init
 from math import sqrt
 import torch.nn.functional as F
 
+__author__ = "Olivier Roche"
+__copyright__ = """This file is part of neural_network_polynomial_layers.
+
+    neural_network_polynomial_layers is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    neural_network_polynomial_layers is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with neural_network_polynomial_layers.  If not, see <https://www.gnu.org/licenses/>.
+    """
+__credits__ = ["Olivier Roche", "Thibault Ketterer"]
+__license__ = "GPL"
+__version__ = "1.0.1"
+__maintainer__ = "Olivier Roche"
+__email__ = "olivier.a.roche@gmail.com"
+__status__ = "Prototype"
 
 def iter_ordered_tuples(start, stop, length):
     """ enumerates all ordered tuples of given length whose elements are in range(start, stop) lexycographically
@@ -18,7 +44,7 @@ def iter_ordered_tuples(start, stop, length):
         length : int
 
     Yields:
-        tuples of ints of given length
+        ordered tuples of ints of given length
     """
     if length == 0:
         yield ()
