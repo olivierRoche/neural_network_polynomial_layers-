@@ -11,6 +11,7 @@ from torch.nn.parameter import Parameter
 from torch.nn.modules.linear import init
 from math import sqrt
 import torch.nn.functional as F
+import torch.optim
 
 __author__ = "Olivier Roche"
 __copyright__ = """This file is part of neural_network_polynomial_layers.
@@ -55,7 +56,7 @@ def iter_ordered_tuples(start, stop, length):
 
 
 @weak_module
-class Polynomial(Module):
+class PolynomialLayer(Module):
     """ a torch module for a polynomial NN layer.
 
     Representation of monomials:
@@ -77,8 +78,8 @@ class Polynomial(Module):
         param_size : int
             the maximum size for the last axis of the Parameters self.coeff_deg_d
         coeff_deg_d : torch.nn.parameter.Parameter
-            the coefficients of the monomials of degree d for each polynomial P_{0}, ..., P_{out_size - 1}. These
-            coefficients are enumerated in lexycographical order. eg, say inp_size == 2, theb coeff_deg_2[1] describes
+            the coefficients of the monomials of degree d for each PolynomialLayer P_{0}, ..., P_{out_size - 1}. These
+            coefficients are enumerated in lexycographical order. eg, say inp_size == 2, then coeff_deg_2[1] describes
             the coefficients of degree 2 of P_1 as follow:
                 * coeff_deg_2[1][0] is the coefficient of X_0 * X_0
                 * coeff_deg_2[1][1] is the coefficient of X_0 * X_1
@@ -88,14 +89,14 @@ class Polynomial(Module):
                 * coeff_deg_2[1][5] is the coefficient of X_2 * X_2
     """
     def __init__(self, degree, inp_size, out_size):
-        super(Polynomial, self).__init__()
+        super(PolynomialLayer, self).__init__()
         self.degree = degree
         self.inp_size = inp_size
         self.out_size = out_size
         self.parameter_names = ["coeff_deg_{0}".format(d) for d in range(degree + 1)]
         self.param_size = self.__count_ordered_tuples(0, degree)
         """ We use reflexion to set the Parameters as attribute. This way, they are automatically added to the list of
-            the parameters of the Module Polynomials (cf the doc of Parameter).
+            the parameters of the Module PolynomialLayer (cf the doc of Parameter).
         """
         for d in range(degree + 1):
             setattr(self, "coeff_deg_{0}".format(d),
@@ -106,6 +107,7 @@ class Polynomial(Module):
                               for n, t in enumerate(iter_ordered_tuples(0, inp_size, d))}
 
     def __count_ordered_tuples(self, start, deg):
+        """ returns the number of ordered tuples of length deg with values in range(start, self.inp_size) """
         if deg <= 0:
             return 1
         if deg == 1:
@@ -118,7 +120,8 @@ class Polynomial(Module):
             init.kaiming_uniform_(getattr(self, param), a=sqrt(5))
 
     def _autopad(self, input):
-        """ automaticaly pads the forelast axis of tensor input so that this axis becomes of size self.param_size
+        """ automaticaly pads the forelast axis of tensor input with zeros so that this axis becomes of size
+        self.param_size
         Usage examples:
             turns self.coeff_deg_d into a tensor of shape (self.param_size, self.out_size)
         """
@@ -138,7 +141,7 @@ class Polynomial(Module):
 
 
 if __name__ == "__main__":
-    p = Polynomial(degree=3, inp_size=3, out_size=4)
+    p = PolynomialLayer(degree=3, inp_size=3, out_size=1)
     print(p.coeff_deg_0)
     for t in iter_ordered_tuples(0, 3, 2):
         print(t)

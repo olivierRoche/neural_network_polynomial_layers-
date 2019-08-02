@@ -1,4 +1,5 @@
-from __init__ import poly_torch
+import __init__
+import poly_torch
 import unittest
 import torch
 from torch.nn.parameter import Parameter
@@ -6,7 +7,7 @@ from torch.nn.parameter import Parameter
 
 class TestForward(unittest.TestCase):
     def setUp(self):
-        self.poly = poly_torch.Polynomial(degree=2, inp_size=2, out_size=1)
+        self.poly = poly_torch.PolynomialLayer(degree=2, inp_size=2, out_size=2)
         # we set poly(X,Y) = (X^2 + 2 XY + 2 X + Y + 1, -2 X^2 + 2 XY + Y^2 + 3 X + 2 Y + 2)
         self.poly.coeff_deg_0 = Parameter(torch.tensor([[1.0], [2.0]]))
         self.poly.coeff_deg_1 = Parameter(torch.tensor(([[2.0, 1.0], [3.0, 2.0]])))  # 2 X + Y, 3 X + 2 Y
