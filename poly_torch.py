@@ -12,6 +12,7 @@ from torch.nn.modules.linear import init
 from math import sqrt
 import torch.nn.functional as F
 import torch.optim
+from tqdm import tqdm
 
 __author__ = "Olivier Roche"
 __copyright__ = """This file is part of neural_network_polynomial_layers.
@@ -62,7 +63,7 @@ class PolynomialLayer(Module):
     Representation of monomials:
         Call a tuple t ordered if t[i] <= t[j] whenever i < j.
         A monomial in the variables X_0, ..., X_n of degree d is represented by an ordered tuple of length d which
-        values range in 0, ..., n. The degree of the variable X_i is the number of occurences of i in this tuple. eg:
+        values range in 0, ..., n. The degree of the variable X_i is the number of occurrences of i in this tuple. eg:
             * (0, 1, 2) represents X_0 * X_1 * X_2.
             * (0, 0, 2) represents X_0 * X_0 * X_2, ie X_0^2 * X_2
             * (0, 4, 4, 4) represents X_0 * X_4^3
@@ -139,10 +140,38 @@ class PolynomialLayer(Module):
             monomial_rows.append(self._autopad(degree_d))
         return sum(self._autopad(getattr(self, "coeff_deg_{0}".format(d))) @ monomial_rows[d] for d in range(self.degree + 1))
 
+    def train_(self, training, optimizer):
+        """ fits the (torch) neural network self to the data contained in training, with a progression bar
+
+        Parameters:
+            training : list of pairs (input : tensor, expected : tensor)
+                the data used to train the nn
+            optimizer : torch.optim.adam or torch.optim.SGD
+        """
+        self.train()
+        for batch_idx, (data, target) in tqdm(enumerate(training), total=len(training)):
+            optimizer.zero_grad()
+            output = self(data)
+            loss = torch.nn.MSELoss()
+            error = loss(output, target)
+            with torch.no_grad():
+                norm = torch.norm(data)
+            error.backward(retain_graph=True)
+            if norm.item() > 1:
+                for param in self.parameters():
+                    param.grad.data /= norm * 10000
+            optimizer.step()
 
 if __name__ == "__main__":
-    p = PolynomialLayer(degree=3, inp_size=3, out_size=1)
-    print(p.coeff_deg_0)
-    for t in iter_ordered_tuples(0, 3, 2):
-        print(t)
-    print(p(torch.tensor([2.0, 3.0, 5.0])))
+    target_polynomial = PolynomialLayer(degree=2, inp_size=1, out_size=1)
+    target_polynomial.coeff_deg_0 = Parameter(torch.tensor([1.0]))
+    target_polynomial.coeff_deg_1 = Parameter(torch.tensor([2.0]))
+    target_polynomial.coeff_deg_2 = Parameter(torch.tensor([1.0]))
+    training = []
+    for i in range(10000):
+        v = 10 * torch.rand(1)
+        training.append((v, target_polynomial(v) + torch.rand(1) - 0.5))
+    poly = PolynomialLayer(degree=2, inp_size=1, out_size=1)
+    optimizer=torch.optim.SGD(poly.parameters(), lr=0.1)
+    poly.train_(training, optimizer)
+    print([p.item() for p in poly.parameters()])
