@@ -140,27 +140,50 @@ class PolynomialLayer(Module):
             monomial_rows.append(self._autopad(degree_d))
         return sum(self._autopad(getattr(self, "coeff_deg_{0}".format(d))) @ monomial_rows[d] for d in range(self.degree + 1))
 
-    def train_(self, training, optimizer):
+    def norm_coefficients(self, coefficients):
+        """ returns the maximum of the norm of each polynomial described by coefficients
+        Parameters:
+             coefficients : list of tensors
+                a list of tensors describing polynomials the same way that self does, ie:
+                -- len(coefficients) ==  self.degree
+                -- coefficients[d].shape == self.coeff_deg_d.shape for all d <= self.degree
+
+        Returns:
+            max_norm : float
+        """
+        with torch.no_grad():
+            concatenation = torch.cat(coefficients, -1)
+            norms = torch.norm(concatenation, dim=-1)
+            max_norm = torch.max(norms)
+        return max_norm.item()
+
+    def fit_to_training(self, training, optimizer, lr=0.1, normalize=True):
         """ fits the (torch) neural network self to the data contained in training, with a progression bar
 
         Parameters:
             training : list of pairs (input : tensor, expected : tensor)
                 the data used to train the nn
             optimizer : torch.optim.adam or torch.optim.SGD
+            lr : float
+                the learning rate
+            normalize : bool
+                if True, normalizes each learning step. This option is useful to prevent overflow during training.
         """
         self.train()
         for batch_idx, (data, target) in tqdm(enumerate(training), total=len(training)):
-            optimizer.zero_grad()
+            optim = optimizer(self.parameters(), lr=lr)
+            optim.zero_grad()
             output = self(data)
             loss = torch.nn.MSELoss()
             error = loss(output, target)
-            with torch.no_grad():
-                norm = torch.norm(data)
             error.backward(retain_graph=True)
-            if norm.item() > 1:
-                for param in self.parameters():
-                    param.grad.data /= norm * 10000
-            optimizer.step()
+            if normalize:
+                with torch.no_grad():
+                    norm = self.norm_coefficients([param.grad.data for param in self.parameters()])
+                if norm > 1:
+                    for param in self.parameters():
+                        param.grad.data /= norm
+            optim.step()
 
 if __name__ == "__main__":
     target_polynomial = PolynomialLayer(degree=2, inp_size=1, out_size=1)
@@ -172,6 +195,5 @@ if __name__ == "__main__":
         v = 10 * torch.rand(1)
         training.append((v, target_polynomial(v) + torch.rand(1) - 0.5))
     poly = PolynomialLayer(degree=2, inp_size=1, out_size=1)
-    optimizer=torch.optim.SGD(poly.parameters(), lr=0.1)
-    poly.train_(training, optimizer)
+    poly.fit_to_training(training, torch.optim.SGD)
     print([p.item() for p in poly.parameters()])
