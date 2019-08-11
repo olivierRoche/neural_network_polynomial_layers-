@@ -94,7 +94,6 @@ class PolynomialLayer(Module):
         self.degree = degree
         self.inp_size = inp_size
         self.out_size = out_size
-        self.parameter_names = ["coeff_deg_{0}".format(d) for d in range(degree + 1)]
         self.param_size = self.__count_ordered_tuples(0, degree)
         """ We use reflexion to set the Parameters as attribute. This way, they are automatically added to the list of
             the parameters of the Module PolynomialLayer (cf the doc of Parameter).
@@ -117,8 +116,8 @@ class PolynomialLayer(Module):
             return sum(self.__count_ordered_tuples(i, deg - 1) for i in range(start, self.inp_size))
 
     def reset_parameters(self):
-        for param in self.parameter_names:
-            init.kaiming_uniform_(getattr(self, param), a=sqrt(5))
+        for param in self.parameters():
+            init.kaiming_uniform_(param, a=sqrt(5))
 
     def _autopad(self, input):
         """ automaticaly pads the forelast axis of tensor input with zeros so that this axis becomes of size
@@ -163,7 +162,7 @@ class PolynomialLayer(Module):
         Parameters:
             training : list of pairs (input : tensor, expected : tensor)
                 the data used to train the nn
-            optimizer : torch.optim.adam or torch.optim.SGD
+            optimizer : an optimizer from torch.optim, eg torch.optim.Adam or torch.optim.SGD
             lr : float
                 the learning rate
             normalize : bool
@@ -197,3 +196,4 @@ if __name__ == "__main__":
     poly = PolynomialLayer(degree=2, inp_size=1, out_size=1)
     poly.fit_to_training(training, torch.optim.SGD)
     print([p.item() for p in poly.parameters()])
+    torch.optim
