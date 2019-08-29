@@ -94,26 +94,26 @@ class PolynomialLayer(Module):
         self.degree = degree
         self.inp_size = inp_size
         self.out_size = out_size
-        self.param_size = self.__count_ordered_tuples(0, degree)
+        self.param_size = self.count_ordered_tuples(0, degree)
         """ We use reflexion to set the Parameters as attribute. This way, they are automatically added to the list of
             the parameters of the Module PolynomialLayer (cf the doc of Parameter).
         """
         for d in range(degree + 1):
             setattr(self, "coeff_deg_{0}".format(d),
-                    Parameter(torch.Tensor(out_size, self.__count_ordered_tuples(0, d))))
+                    Parameter(torch.Tensor(out_size, self.count_ordered_tuples(0, d))))
         self.reset_parameters()
         # self.tuple_indices stores the index of each ordered_tuple for easy access in various tensors
         self.tuple_indices = {t: n for d in range(1, degree + 1)
                               for n, t in enumerate(iter_ordered_tuples(0, inp_size, d))}
 
-    def __count_ordered_tuples(self, start, deg):
+    def count_ordered_tuples(self, start, deg):
         """ returns the number of ordered tuples of length deg with values in range(start, self.inp_size) """
         if deg <= 0:
             return 1
         if deg == 1:
             return self.inp_size - start
         else:
-            return sum(self.__count_ordered_tuples(i, deg - 1) for i in range(start, self.inp_size))
+            return sum(self.count_ordered_tuples(i, deg - 1) for i in range(start, self.inp_size))
 
     def reset_parameters(self):
         for param in self.parameters():
@@ -128,16 +128,33 @@ class PolynomialLayer(Module):
         return F.pad(input=input, pad=[0, self.param_size - input.shape[-1]])
 
     @weak_script_method
-    def forward(self, input):
-        monomial_rows = [self._autopad(torch.tensor([1.0])), self._autopad(input)]
+    def forward(self, inp):
+        inp = inp.view(-1, self.inp_size)
+        batch_size = inp.shape[0]
+        monomial_rows = [torch.ones(batch_size, self.out_size), inp]
         """ monomial_rows[d] will contain the values of the monomials of degree d for the given input.
         Using monomial_rows[d] to compute monomial_rows[d + 1] allows us a memoization.
         """
         for d in range(2, self.degree + 1):
-            degree_d = torch.tensor([input[t[0]] * monomial_rows[-1][self.tuple_indices[t[1:]]] for t in
-                                     iter_ordered_tuples(0, len(input), d)])
-            monomial_rows.append(self._autopad(degree_d))
-        return sum(self._autopad(getattr(self, "coeff_deg_{0}".format(d))) @ monomial_rows[d] for d in range(self.degree + 1))
+            degree_d = torch.tensor([[inp[b, t[0]] * monomial_rows[-1][b, self.tuple_indices[t[1:]]] for t in
+                                     iter_ordered_tuples(0, self.inp_size, d)] for b in range(batch_size)])
+            monomial_rows.append(degree_d)
+        return torch.t(sum([torch.matmul(getattr(self, "coeff_deg_{0}".format(d)),
+                          torch.t(monomial_rows[d])) for d in range(1, self.degree + 1)]) + \
+               torch.cat([self.coeff_deg_0 for i in range(batch_size)], dim=-1))
+        # return sum(self._autopad(getattr(self, "coeff_deg_{0}".format(d))) @ monomial_rows[d] for d in range(self.degree + 1))
+
+    #@weak_script_method
+    # def forward(self, input):
+    #     monomial_rows = [self._autopad(torch.tensor([1.0])), self._autopad(input)]
+    #     """ monomial_rows[d] will contain the values of the monomials of degree d for the given input.
+    #     Using monomial_rows[d] to compute monomial_rows[d + 1] allows us a memoization.
+    #     """
+    #     for d in range(2, self.degree + 1):
+    #         degree_d = torch.tensor([input[t[0]] * monomial_rows[-1][self.tuple_indices[t[1:]]] for t in
+    #                                  iter_ordered_tuples(0, len(input), d)])
+    #         monomial_rows.append(self._autopad(degree_d))
+    #     return sum(self._autopad(getattr(self, "coeff_deg_{0}".format(d))) @ monomial_rows[d] for d in range(self.degree + 1))
 
     def norm_coefficients(self, coefficients):
         """ returns the maximum of the norm of each polynomial described by coefficients
@@ -185,6 +202,11 @@ class PolynomialLayer(Module):
             optim.step()
 
 if __name__ == "__main__":
+    # test_poly = PolynomialLayer(degree=3, inp_size=2, out_size=7)
+    # x_test = torch.tensor([[2., 3.], [5., 7.]])
+    # y_test = test_poly(x_test)
+    # print(y_test)
+    # print(y_test.shape)
     target_polynomial = PolynomialLayer(degree=2, inp_size=1, out_size=1)
     target_polynomial.coeff_deg_0 = Parameter(torch.tensor([1.0]))
     target_polynomial.coeff_deg_1 = Parameter(torch.tensor([2.0]))
@@ -196,4 +218,3 @@ if __name__ == "__main__":
     poly = PolynomialLayer(degree=2, inp_size=1, out_size=1)
     poly.fit_to_training(training, torch.optim.SGD)
     print([p.item() for p in poly.parameters()])
-    torch.optim
